@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:open_filex/open_filex.dart'; // Import de la nouvelle version
 import '../services/device_service.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart'; // MAJ launcher
 
 class StudentHome extends StatefulWidget {
   final String displayName;
