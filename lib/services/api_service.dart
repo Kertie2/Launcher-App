@@ -1,0 +1,95 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+
+class ApiService {
+  static const String baseUrl = "http://10.111.27.253:3000";
+  static const String baseUrlFallback = "http://100.27.0.2:3000";
+  
+  static String? _activeBaseUrl;
+
+  // Getters pour utiliser l'IP qui fonctionne partout dans l'app
+  static String get currentBaseUrl => _activeBaseUrl ?? baseUrl;
+  static String get currentFallbackUrl => (_activeBaseUrl == null || _activeBaseUrl == baseUrl) 
+      ? baseUrlFallback 
+      : baseUrl;
+
+  static Future<http.Response?> _tryRequest(
+    Future<http.Response> Function(String base) requestFn, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (_activeBaseUrl != null) {
+      try {
+        return await requestFn(_activeBaseUrl!).timeout(timeout);
+      } catch (_) {
+        _activeBaseUrl = null; // Reset if the preferred URL fails
+      }
+    }
+
+    // Try with the primary URL
+    try {
+      final response = await requestFn(baseUrl).timeout(timeout);
+      _activeBaseUrl = baseUrl;
+      return response;
+    } catch (_) {
+      // If it fails, try the fallback
+      try {
+        final response = await requestFn(baseUrlFallback).timeout(timeout);
+        _activeBaseUrl = baseUrlFallback;
+        return response;
+      } catch (_) {
+        return null; // Both failed
+      }
+    }
+  }
+
+  static Future<Map<String, dynamic>> login(String username, String password, String deviceId) async {
+    final response = await _tryRequest((base) {
+      return http.post(
+        Uri.parse("$base/api/login"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"username": username, "password": password, "deviceId": deviceId}),
+      );
+    });
+    if (response == null) return {"success": false, "message": "Serveur injoignable"};
+    return response.statusCode == 200 ? jsonDecode(response.body) : {"success": false, "message": "Erreur identifiants"};
+  }
+
+  static Future<List<dynamic>> getAllowedApps() async {
+    final response = await _tryRequest((base) => http.get(Uri.parse('$base/api/apps')));
+    return (response != null && response.statusCode == 200) ? jsonDecode(response.body) : [];
+  }
+
+  static Future<bool> addApp(String name, String package, String iconBase64, String apkPath) async {
+    try {
+      final response = await _tryRequest(
+        (base) async {
+          var request = http.MultipartRequest('POST', Uri.parse('$base/api/apps'));
+          request.fields['appName'] = name;
+          request.fields['package'] = package;
+          request.fields['iconBase64'] = iconBase64;
+
+          request.files.add(await http.MultipartFile.fromPath(
+            'apk',
+            apkPath,
+            contentType: MediaType('application', 'vnd.android.package-archive'),
+          ));
+
+          var streamed = await request.send();
+          return await http.Response.fromStream(streamed);
+        },
+        timeout: const Duration(minutes: 2), // APKs can be large
+      );
+
+      return response != null && response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteApp(int id) async {
+    final response = await _tryRequest((base) => http.delete(Uri.parse('$base/api/apps/$id')));
+    return response != null && response.statusCode >= 200 && response.statusCode < 300;
+  }
+}
+

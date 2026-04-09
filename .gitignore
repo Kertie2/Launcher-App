@@ -1,0 +1,78 @@
+############################
+# Flutter / Dart
+############################
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+############################
+# Android
+############################
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.cxx/
+
+# Keystore (sécurité)
+*.jks
+*.keystore
+key.properties
+
+############################
+# Gradle
+############################
+.gradle/
+build/
+
+############################
+# Logs & temp
+############################
+*.log
+*.tmp
+*.temp
+*.swp
+*.lock
+
+############################
+# IDE / Editors
+############################
+.idea/
+.vscode/
+*.iml
+
+############################
+# OS files
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# Generated / useless
+############################
+**/generated/
+**/intermediates/
+**/outputs/
+**/captures/
+**/.transforms/
+
+############################
+# APK / AAB (optionnel)
+############################
+*.apk
+*.aab
+
+############################
+# Dart / Flutter cache
+############################
+.pub-cache/
+.pub/
+
+############################
+# Misc
+############################
+coverage/
