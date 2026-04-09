@@ -37,13 +37,15 @@ class _StudentHomeState extends State<StudentHome> {
     super.initState();
     _checkPermissions(); // Demande la perm au début
     _loadApps();
-    
+
     // Configuration de l'avertissement en cas de blocage
     AppLockService.onAppBlocked = (packageName) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("⚠️ Cette application n'est pas autorisée sur cette tablette."),
+            content: Text(
+              "⚠️ Cette application n'est pas autorisée sur cette tablette.",
+            ),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -155,7 +157,7 @@ class _StudentHomeState extends State<StudentHome> {
     for (var app in apps) {
       String pkg = app['packageName'] ?? '';
       if (pkg.isEmpty) continue;
-      
+
       pkgNames.add(pkg);
 
       bool isInstalled = await DeviceApps.isAppInstalled(pkg);
@@ -181,11 +183,13 @@ class _StudentHomeState extends State<StudentHome> {
     if (_isInstalling) return;
     _isInstalling = true;
 
+    // Désactive le kiosque pendant l'installation
+    AppLockService.stop();
+
     try {
       final directory = await getApplicationSupportDirectory();
       final String savePath = "${directory.path}/$packageName.apk";
 
-      // On utilise l'IP mémorisée par ApiService
       final urls = [
         "${ApiService.currentBaseUrl}/uploads/apks/$packageName.apk",
         "${ApiService.currentFallbackUrl}/uploads/apks/$packageName.apk",
@@ -213,7 +217,7 @@ class _StudentHomeState extends State<StudentHome> {
       }
 
       if (!downloaded) {
-        debugPrint("❌ Impossible de télécharger $appName depuis toutes les IP");
+        debugPrint("❌ Impossible de télécharger $appName");
         return;
       }
 
@@ -223,10 +227,28 @@ class _StudentHomeState extends State<StudentHome> {
       );
 
       debugPrint("Résultat de l'ouverture : ${result.message}");
+
+      // Attend que l'utilisateur finisse l'installation
+      // On poll jusqu'à ce que l'app soit installée (max 2 minutes)
+      int attempts = 0;
+      while (attempts < 24) {
+        await Future.delayed(const Duration(seconds: 5));
+        bool isInstalled = await DeviceApps.isAppInstalled(packageName);
+        if (isInstalled) {
+          debugPrint("✅ $appName installée !");
+          break;
+        }
+        attempts++;
+      }
     } catch (e) {
       debugPrint("❌ Erreur installation $appName: $e");
     } finally {
       _isInstalling = false;
+      // Réactive le kiosque avec la liste des apps autorisées
+      AppLockService.start(
+        allowedApps.map((app) => app['packageName'] as String).toList(),
+      );
+      debugPrint("🔒 Kiosque réactivé");
     }
   }
 

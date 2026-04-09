@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (response['success'] == true) {
       String role = response['role'];
       String displayName = response['displayName'];
-      String details = response['details'];
+      String details = response['details'] ?? "";
 
       // Si pas configuré et que c'est un élève, on bloque
       if (deviceId == "NON-CONFIGURE" && role != 'ADMIN') {
