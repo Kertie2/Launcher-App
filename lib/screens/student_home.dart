@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:open_filex/open_filex.dart'; // Import de la nouvelle version
+import '../services/device_service.dart';
 
 class StudentHome extends StatefulWidget {
   final String displayName;
@@ -35,10 +36,9 @@ class _StudentHomeState extends State<StudentHome> {
   @override
   void initState() {
     super.initState();
-    _checkPermissions(); // Demande la perm au début
+    _checkPermissions();
     _loadApps();
 
-    // Configuration de l'avertissement en cas de blocage
     AppLockService.onAppBlocked = (packageName) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,8 +53,8 @@ class _StudentHomeState extends State<StudentHome> {
       }
     };
 
-    // Relance le fetch et le check toutes les 15 secondes
-    _updateTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    // Heartbeat toutes les 30 secondes
+    _updateTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _loadApps();
     });
   }
@@ -150,25 +150,63 @@ class _StudentHomeState extends State<StudentHome> {
 
   void _loadApps() async {
     final apps = await ApiService.getAllowedApps();
+    final deviceId = await DeviceService.getDeviceId() ?? 'NON-CONFIGURE';
     Map<String, bool> status = {};
-
     List<String> pkgNames = [];
+    List<Map<String, String>> installedAppsList = [];
 
     for (var app in apps) {
       String pkg = app['packageName'] ?? '';
       if (pkg.isEmpty) continue;
-
       pkgNames.add(pkg);
 
       bool isInstalled = await DeviceApps.isAppInstalled(pkg);
       status[pkg] = isInstalled;
+
+      if (isInstalled) {
+        installedAppsList.add({
+          'packageName': pkg,
+          'appName': app['appName'] ?? '',
+        });
+      }
 
       if (!isInstalled && !_isInstalling) {
         _downloadAndInstall(pkg, app['appName'] ?? 'App');
       }
     }
 
-    // On met à jour la liste des apps autorisées dans le service de verrouillage
+    // Envoie le heartbeat avec les apps installées
+    final heartbeat = await ApiService.sendHeartbeat(
+      deviceId,
+      installedAppsList,
+    );
+
+    // Si la tablette est blacklistée, on déconnecte
+    if (heartbeat['blacklisted'] == true) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text("Tablette bloquée"),
+            content: Text(
+              "Cette tablette a été bloquée par un administrateur.\n\nRaison : ${heartbeat['reason'] ?? 'Non précisée'}",
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                ),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     AppLockService.start(pkgNames);
 
     if (mounted) {

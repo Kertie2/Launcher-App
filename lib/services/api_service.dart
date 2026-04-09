@@ -22,6 +22,37 @@ class ApiService {
     if (_token != null) "Authorization": "Bearer $_token",
   };
 
+  static Future<Map<String, dynamic>> sendHeartbeat(
+    String deviceId,
+    List<Map<String, String>> installedApps,
+  ) async {
+    final response = await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/devices/heartbeat'),
+        headers: _authHeaders,
+        body: jsonEncode({
+          'deviceId': deviceId,
+          'installedApps': installedApps,
+        }),
+      ),
+    );
+    if (response == null) return {'success': false};
+    return jsonDecode(response.body);
+  }
+
+  // Vérifie si la tablette est blacklistée
+  static Future<bool> isDeviceBlacklisted(String deviceId) async {
+    final response = await _tryRequest(
+      (base) => http.get(
+        Uri.parse('$base/api/devices/$deviceId/status'),
+        headers: _authHeaders,
+      ),
+    );
+    if (response == null) return false;
+    final data = jsonDecode(response.body);
+    return data['blacklisted'] == true;
+  }
+
   static Future<http.Response?> _tryRequest(
     Future<http.Response> Function(String base) requestFn, {
     Duration timeout = const Duration(seconds: 5),
