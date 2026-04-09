@@ -30,19 +30,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _launchLoginProcess() async {
-    // Vérifie que la tablette est configurée
-    final deviceId = await DeviceService.getDeviceId();
-    if (deviceId == null) {
+    final deviceId = await DeviceService.getDeviceId() ?? "NON-CONFIGURE";
+
+    // Avertissement si pas configuré, mais on bloque pas l'admin
+    if (deviceId == "NON-CONFIGURE") {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            "⚠️ Cette tablette n'a pas d'identifiant configuré. Contactez un administrateur.",
+            "⚠️ Tablette non configurée. Connectez-vous en admin pour l'identifier.",
           ),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 4),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
         ),
       );
-      return;
     }
 
     showDialog(
@@ -54,16 +54,30 @@ class _LoginScreenState extends State<LoginScreen> {
     final response = await ApiService.login(
       _userController.text.trim(),
       _passwordController.text,
-      deviceId, // <- remplace le hardcode
+      deviceId,
     );
 
     if (!mounted) return;
-    Navigator.pop(context); // Enlève le chargement
+    Navigator.pop(context);
 
     if (response['success'] == true) {
-      String role = response['role']; // 'ADMIN' ou 'STUDENT'
+      String role = response['role'];
       String displayName = response['displayName'];
-      String details = response['details']; // La classe (ex: 3G2)
+      String details = response['details'];
+
+      // Si pas configuré et que c'est un élève, on bloque
+      if (deviceId == "NON-CONFIGURE" && role != 'ADMIN') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "❌ Cette tablette doit être configurée par un administrateur avant utilisation.",
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
 
       if (role == 'ADMIN') {
         Navigator.pushReplacement(
@@ -82,7 +96,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
-      // Erreur d'identifiants ou réseau
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response['message']),
