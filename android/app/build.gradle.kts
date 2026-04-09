@@ -1,11 +1,13 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-kotlinval keyProperties = Properties()
+val keyProperties = Properties()
 val keyPropertiesFile = rootProject.file("key.properties")
 if (keyPropertiesFile.exists()) {
     keyProperties.load(FileInputStream(keyPropertiesFile))
@@ -13,7 +15,7 @@ if (keyPropertiesFile.exists()) {
 
 android {
     namespace = "fr.timeo.launchercollege"
-    compileSdk = 36 // Mis à jour vers 36 comme requis par les dépendances récentes
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -22,15 +24,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
-    defaultConfig {
-        applicationId = "fr.timeo.launchercollege"
-        minSdk = flutter.minSdkVersion
-        targetSdk = 36 // Mis à jour vers 36
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        jvmTarget = "17"
     }
 
     signingConfigs {
@@ -41,7 +35,15 @@ android {
             storePassword = keyProperties["storePassword"] as String
         }
     }
-    
+
+    defaultConfig {
+        applicationId = "fr.timeo.launchercollege"
+        minSdk = flutter.minSdkVersion
+        targetSdk = 36
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
