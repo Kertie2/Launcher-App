@@ -25,6 +25,9 @@ jobs:
           channel: stable
           flutter-version: 3.19.0
 
+      - name: Config Flutter
+        run: flutter config --no-cli-animations
+
       - name: Install dependencies
         run: flutter pub get
 
