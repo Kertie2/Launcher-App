@@ -4,6 +4,7 @@ import '../services/api_service.dart'; // Import du service
 import '../services/app_lock_service.dart';
 import 'student_home.dart';
 import 'admin_home.dart';
+import '../services/device_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,18 +30,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _launchLoginProcess() async {
-    // Affichage du chargement
+    // Vérifie que la tablette est configurée
+    final deviceId = await DeviceService.getDeviceId();
+    if (deviceId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "⚠️ Cette tablette n'a pas d'identifiant configuré. Contactez un administrateur.",
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // APPEL API RÉEL
     final response = await ApiService.login(
       _userController.text.trim(),
       _passwordController.text,
-      "LENOVO-TAB-STEX-01", // ID de test
+      deviceId, // <- remplace le hardcode
     );
 
     if (!mounted) return;

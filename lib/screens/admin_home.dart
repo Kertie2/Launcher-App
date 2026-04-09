@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'dart:convert';
 import 'package:external_app_launcher/external_app_launcher.dart';
 import 'package:http/http.dart' as http;
+import '../services/device_service.dart';
 
 class AdminHome extends StatefulWidget {
   final String userName;
@@ -25,6 +26,58 @@ class _AdminHomeState extends State<AdminHome> {
     // L'admin peut aller partout, on désactive le verrouillage
     AppLockService.start([], isAdmin: true);
     _fetchApps();
+  }
+
+  void _showDeviceIdDialog() async {
+    final currentId = await DeviceService.getDeviceId();
+    final controller = TextEditingController(text: currentId ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Configurer l'identifiant tablette"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "ID actuel : ${currentId ?? 'Non configuré'}",
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: "Nouvel identifiant",
+                hintText: "ex: 10",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newId = controller.text.trim();
+              if (newId.isEmpty) return;
+              await DeviceService.setDeviceId(newId);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("✅ Identifiant configuré : $newId"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text("Enregistrer"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showLoadingDialog(String message) {
@@ -126,6 +179,12 @@ class _AdminHomeState extends State<AdminHome> {
                           "Ajouter une application",
                           () => _showAddAppDialog(),
                         ),
+                        const SizedBox(width: 20),
+                        _buildActionButton(
+                          Icons.tablet_android,
+                          "Configurer l'ID tablette",
+                          () => _showDeviceIdDialog(),
+                        ), // <- nouveau
                       ],
                     ),
                     const SizedBox(height: 40),
@@ -378,9 +437,13 @@ class _AdminHomeState extends State<AdminHome> {
                         );
 
                         if (context.mounted) {
-                          Navigator.pop(context); // Ferme le dialogue de chargement
+                          Navigator.pop(
+                            context,
+                          ); // Ferme le dialogue de chargement
                           if (success) {
-                            Navigator.pop(context); // Ferme le dialogue de sélection
+                            Navigator.pop(
+                              context,
+                            ); // Ferme le dialogue de sélection
                             _fetchApps();
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
