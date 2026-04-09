@@ -4,7 +4,7 @@ import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.111.27.253:3000";
-  static const String baseUrlFallback = "http://100.27.0.2:3000";
+  static const String baseUrlFallback = "http://localhost:3000";
 
   static String? _token;
 
