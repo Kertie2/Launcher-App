@@ -65,6 +65,16 @@ jobs:
           sed -i "s/^version: .*/version: $VERSION+1/" pubspec.yaml
           echo "✅ pubspec.yaml mis à jour : $VERSION"
 
+      - name: Setup Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/launcher.keystore
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=launcher.keystore
+          EOF
+
       - name: Build APK
         run: flutter build apk --release
 
