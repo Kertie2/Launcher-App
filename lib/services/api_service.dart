@@ -22,6 +22,17 @@ class ApiService {
     if (_token != null) "Authorization": "Bearer $_token",
   };
 
+  static Future<Map<String, dynamic>> getLatestLauncherVersion() async {
+    final response = await _tryRequest(
+      (base) => http.get(
+        Uri.parse('$base/api/launcher/latest'),
+        headers: _authHeaders,
+      ),
+    );
+    if (response == null) return {};
+    return jsonDecode(response.body);
+  }
+
   static Future<Map<String, dynamic>> sendHeartbeat(
     String deviceId,
     List<Map<String, String>> installedApps,

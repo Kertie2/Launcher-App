@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:open_filex/open_filex.dart'; // Import de la nouvelle version
 import '../services/device_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class StudentHome extends StatefulWidget {
   final String displayName;
@@ -38,6 +39,7 @@ class _StudentHomeState extends State<StudentHome> {
     super.initState();
     _checkPermissions();
     _loadApps();
+    _checkLauncherUpdate();
 
     AppLockService.onAppBlocked = (packageName) {
       if (mounted) {
@@ -81,6 +83,68 @@ class _StudentHomeState extends State<StudentHome> {
     _secretTapResetTimer = Timer(const Duration(seconds: 4), () {
       _secretTapCount = 0;
     });
+  }
+
+  Future<void> _checkLauncherUpdate() async {
+    try {
+      final latest = await ApiService.getLatestLauncherVersion();
+      if (latest.isEmpty) return;
+
+      final latestVersion = latest['version'] as String?;
+      if (latestVersion == null) return;
+
+      // Récupère la version actuelle de l'app
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = 'v${packageInfo.version}';
+
+      debugPrint("📱 Version actuelle : $currentVersion");
+      debugPrint("🆕 Dernière version : $latestVersion");
+
+      if (currentVersion != latestVersion) {
+        _downloadAndInstallLauncher(latest['downloadUrl'], latestVersion);
+      }
+    } catch (e) {
+      debugPrint("❌ Erreur vérification MAJ : $e");
+    }
+  }
+
+  Future<void> _downloadAndInstallLauncher(String url, String version) async {
+    if (!mounted) return;
+
+    // Affiche une notification discrète
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("🔄 Mise à jour $version disponible, téléchargement..."),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.blue,
+      ),
+    );
+
+    try {
+      final directory = await getApplicationSupportDirectory();
+      final savePath = '${directory.path}/launcher-update.apk';
+
+      await Dio().download(
+        url,
+        savePath,
+        options: Options(receiveTimeout: const Duration(minutes: 5)),
+      );
+
+      if (!mounted) return;
+
+      // Désactive le kiosque pour l'installation
+      AppLockService.stop();
+
+      await OpenFilex.open(
+        savePath,
+        type: "application/vnd.android.package-archive",
+      );
+    } catch (e) {
+      debugPrint("❌ Erreur MAJ launcher : $e");
+      AppLockService.start(
+        allowedApps.map((app) => app['packageName'] as String).toList(),
+      );
+    }
   }
 
   Future<void> _showDisableAppLockDialog() async {
