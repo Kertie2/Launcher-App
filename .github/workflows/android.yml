@@ -18,6 +18,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Extract version from commit message
+        id: extract_version
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          VERSION=$(echo "$COMMIT_MSG" | grep -oP '(?<=- B - V)\d+\.\d+\.\d+' || true)
+          if [ -z "$VERSION" ]; then
+            echo "❌ Pas de version trouvée dans le message de commit (format attendu: - B - VX.XX.X)"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Version extraite : $VERSION"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -36,6 +48,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Update version in pubspec.yaml
+        run: |
+          VERSION="${{ steps.extract_version.outputs.VERSION }}"
+          sed -i "s/^version: .*/version: $VERSION+1/" pubspec.yaml
+          echo "✅ pubspec.yaml mis à jour : $VERSION"
+
       - name: Build APK
         run: flutter build apk --release
 
@@ -48,8 +66,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.${{ github.run_number }}
-          name: Release v1.${{ github.run_number }}
+          tag_name: v${{ steps.extract_version.outputs.VERSION }}
+          name: Release v${{ steps.extract_version.outputs.VERSION }}
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
