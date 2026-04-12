@@ -77,3 +77,8 @@ Thumbs.db
 # Misc
 ############################
 coverage/
+ios/
+linux/
+macos/
+windows/
+web/

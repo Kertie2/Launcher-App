@@ -176,10 +176,10 @@ class _LoginScreenState extends State<LoginScreen>
       String displayName = response['displayName'];
       String details = response['details'] ?? "";
 
-      if (deviceId == "NON-CONFIGURE" && role != 'ADMIN') {
+      if (deviceId == "NON-CONFIGURE") {
         _showSnack(
-          "❌ Cette tablette doit être configurée par un administrateur.",
-          Colors.red,
+          "⚠️ Veuillez notifier votre professeur que le numéro de tablette n'est pas configuré.",
+          Colors.red[900]!,
         );
         return;
       }

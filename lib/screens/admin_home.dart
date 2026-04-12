@@ -6,7 +6,6 @@ import '../services/app_lock_service.dart';
 import 'login_screen.dart';
 import 'dart:convert';
 import 'package:external_app_launcher/external_app_launcher.dart';
-import 'package:http/http.dart' as http;
 import '../services/device_service.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
