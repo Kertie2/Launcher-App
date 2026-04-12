@@ -342,7 +342,7 @@ class _AdminHomeState extends State<AdminHome> with TickerProviderStateMixin {
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)), 
                       ),
                       child: const Icon(
                         Icons.logout_rounded,
