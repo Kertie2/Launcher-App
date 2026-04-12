@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.111.27.253:3000";
@@ -49,6 +50,16 @@ class ApiService {
     );
     if (response == null) return {'success': false};
     return jsonDecode(response.body);
+  }
+
+  static Future<void> logoutDevice(String deviceId) async {
+    await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/devices/logout'),
+        headers: _authHeaders,
+        body: jsonEncode({'deviceId': deviceId}),
+      ),
+    );
   }
 
   // Vérifie si la tablette est blacklistée
@@ -136,37 +147,57 @@ class ApiService {
     String apkPath,
   ) async {
     try {
-      final response = await _tryRequest(
-        (base) async {
-          var request = http.MultipartRequest(
-            'POST',
-            Uri.parse('$base/api/apps'),
-          );
-          request.fields['appName'] = name;
-          request.fields['package'] = package;
-          request.fields['iconBase64'] = iconBase64;
+      debugPrint("📤 [addApp] Début envoi : $name ($package)");
+      debugPrint("📤 [addApp] APK path : $apkPath");
+      debugPrint("📤 [addApp] Token présent : ${_token != null}");
+      debugPrint("📤 [addApp] URL cible : $currentBaseUrl/api/apps");
 
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'apk',
-              apkPath,
-              contentType: MediaType(
-                'application',
-                'vnd.android.package-archive',
-              ),
+      final response = await _tryRequest((base) async {
+        debugPrint("📤 [addApp] Tentative sur : $base");
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('$base/api/apps'),
+        );
+        request.fields['appName'] = name;
+        request.fields['package'] = package;
+        request.fields['iconBase64'] = iconBase64;
+
+        if (_token != null) {
+          request.headers['Authorization'] = 'Bearer $_token';
+        } else {
+          debugPrint("❌ [addApp] Pas de token !");
+        }
+
+        debugPrint("📤 [addApp] Ajout du fichier APK...");
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'apk',
+            apkPath,
+            contentType: MediaType(
+              'application',
+              'vnd.android.package-archive',
             ),
-          );
+          ),
+        );
 
-          var streamed = await request.send();
-          return await http.Response.fromStream(streamed);
-        },
-        timeout: const Duration(minutes: 2), // APKs can be large
-      );
+        debugPrint("📤 [addApp] Envoi de la requête...");
+        var streamed = await request.send();
+        final resp = await http.Response.fromStream(streamed);
+        debugPrint("📤 [addApp] Réponse reçue : ${resp.statusCode}");
+        debugPrint("📤 [addApp] Body : ${resp.body}");
+        return resp;
+      }, timeout: const Duration(minutes: 2));
 
-      return response != null &&
+      final success =
+          response != null &&
           response.statusCode >= 200 &&
           response.statusCode < 300;
-    } catch (_) {
+      debugPrint(
+        "📤 [addApp] Résultat final : ${success ? '✅ Succès' : '❌ Échec'}",
+      );
+      return success;
+    } catch (e) {
+      debugPrint("❌ [addApp] Exception : $e");
       return false;
     }
   }
