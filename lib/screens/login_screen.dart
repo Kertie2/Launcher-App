@@ -181,7 +181,6 @@ class _LoginScreenState extends State<LoginScreen>
           "⚠️ Veuillez notifier votre professeur que le numéro de tablette n'est pas configuré.",
           Colors.red[900]!,
         );
-        return;
       }
 
       if (role == 'ADMIN') {
