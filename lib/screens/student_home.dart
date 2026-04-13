@@ -47,7 +47,7 @@ class _StudentHomeState extends State<StudentHome>
     final deviceId = await DeviceService.getDeviceId() ?? 'NON-CONFIGURE';
     await ApiService.logoutDevice(deviceId);
     if (!mounted) return;
-    AppLockService.start();
+    AppLockService.start([]);
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
