@@ -25,7 +25,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getLatestLauncherVersion() async {
     final response = await _tryRequest(
-      (base) => http.get(
+      (base) => http.get( 
         Uri.parse('$base/api/launcher/latest'),
         headers: _authHeaders,
       ),
