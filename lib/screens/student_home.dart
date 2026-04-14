@@ -34,6 +34,8 @@ class _StudentHomeState extends State<StudentHome>
   Timer? _secretTapResetTimer;
   final TextEditingController _disableCodeController = TextEditingController();
   int _secretTapCount = 0;
+  late AppLifecycleListener _lifecycleListener;
+  DateTime? _backgroundTime;
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnim;
@@ -88,6 +90,23 @@ class _StudentHomeState extends State<StudentHome>
           ),
         );
       }
+
+      _lifecycleListener = AppLifecycleListener(
+        onPause: () {
+            // L'app passe en arrière-plan ou écran verrouillé
+            _backgroundTime = DateTime.now();
+        },
+        onResume: () {
+            // L'app revient au premier plan
+            if (_backgroundTime != null) {
+                final elapsed = DateTime.now().difference(_backgroundTime!);
+                if (elapsed.inMinutes >= 5) {
+                    _logout();
+                }
+                _backgroundTime = null;
+            }
+        },
+    );
     };
 
     _updateTimer = Timer.periodic(
@@ -98,6 +117,7 @@ class _StudentHomeState extends State<StudentHome>
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     _updateTimer?.cancel();
     _secretTapResetTimer?.cancel();
     _disableCodeController.dispose();

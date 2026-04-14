@@ -34,6 +34,10 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  static void clearSession() {
+    _token = null;
+  }
+
   static Future<Map<String, dynamic>> sendHeartbeat(
     String deviceId,
     List<Map<String, String>> installedApps,
