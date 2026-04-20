@@ -11,7 +11,7 @@ class AppLockService {
   static bool _isDisabled = false;
   static bool _permissionCached = false; // Cache pour la permission
   static String myPackageName = "fr.timeo.launchercollege";
-  
+
   static Function(String)? onAppBlocked;
 
   /// Démarre la surveillance
@@ -23,21 +23,21 @@ class AppLockService {
     }
 
     _allowedPackages = [
-      myPackageName, 
+      myPackageName,
       "com.android.settings",
       "com.google.android.packageinstaller",
-      
-      ...allowed
+
+      ...allowed,
     ];
     _isAdmin = isAdmin;
     _isActive = true;
 
     _timer?.cancel();
-    
+
     if (!_isAdmin) {
       // On vérifie la permission une seule fois au début pour éviter les logs inutiles
       _permissionCached = await UsageStats.checkUsagePermission() ?? false;
-      
+
       _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
         _checkCurrentApp();
       });
@@ -61,34 +61,44 @@ class AppLockService {
 
     DateTime endDate = DateTime.now();
     DateTime startDate = endDate.subtract(const Duration(seconds: 1));
-    
-    List<EventUsageInfo> events = await UsageStats.queryEvents(startDate, endDate);
-    
+
+    List<EventUsageInfo> events = await UsageStats.queryEvents(
+      startDate,
+      endDate,
+    );
+
     if (events.isEmpty) return;
 
     String? lastPackage;
     for (var event in events.reversed) {
-      if (event.eventType == "1") { // MOVE_TO_FOREGROUND
+      if (event.eventType == "1") {
+        // MOVE_TO_FOREGROUND
         lastPackage = event.packageName;
         break;
       }
     }
 
-    if (lastPackage != null && 
-        lastPackage != myPackageName && 
+    if (lastPackage != null &&
+        lastPackage != myPackageName &&
         !_allowedPackages.contains(lastPackage)) {
-      
       debugPrint("🚫 Blocage de : $lastPackage");
-      
+
       await LaunchApp.openApp(
         androidPackageName: myPackageName,
         openStore: false,
       );
-      
+
       if (onAppBlocked != null) {
         onAppBlocked!(lastPackage);
       }
     }
+  }
+
+  static Future<void> bringToForeground() async {
+    await LaunchApp.openApp(
+      androidPackageName: myPackageName,
+      openStore: false,
+    );
   }
 
   static Future<bool> checkAndRequestPermission(BuildContext context) async {
@@ -102,7 +112,8 @@ class AppLockService {
           builder: (context) => AlertDialog(
             title: const Text("Sécurité du Launcher"),
             content: const Text(
-                "Pour que le mode kiosque fonctionne, vous devez autoriser 'Accès aux données d'utilisation' pour cette application."),
+              "Pour que le mode kiosque fonctionne, vous devez autoriser 'Accès aux données d'utilisation' pour cette application.",
+            ),
             actions: [
               TextButton(
                 onPressed: () async {

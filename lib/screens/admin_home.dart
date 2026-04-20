@@ -10,6 +10,7 @@ import '../services/device_service.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'admin_devices_screen.dart';
 
 class AdminHome extends StatefulWidget {
   final String userName;
@@ -341,7 +342,7 @@ class _AdminHomeState extends State<AdminHome> with TickerProviderStateMixin {
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)), 
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
                       ),
                       child: const Icon(
                         Icons.logout_rounded,
@@ -397,6 +398,20 @@ class _AdminHomeState extends State<AdminHome> with TickerProviderStateMixin {
             "ID Tablette",
             const Color(0xFF6C63FF),
             () => _showDeviceIdDialog(),
+          ),
+          const SizedBox(width: 12),
+          _buildActionChip(
+            Icons.tablet_android_rounded,
+            "Tablettes",
+            const Color(0xFF10B981),
+            () => Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => const AdminDevicesScreen(),
+                transitionsBuilder: (_, anim, __, child) =>
+                    FadeTransition(opacity: anim, child: child),
+              ),
+            ),
           ),
           const Spacer(),
           // Refresh

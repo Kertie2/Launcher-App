@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
+import 'package:external_app_launcher/external_app_launcher.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.111.27.253:3000";
@@ -25,7 +26,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getLatestLauncherVersion() async {
     final response = await _tryRequest(
-      (base) => http.get( 
+      (base) => http.get(
         Uri.parse('$base/api/launcher/latest'),
         headers: _authHeaders,
       ),
@@ -144,6 +145,19 @@ class ApiService {
         : [];
   }
 
+  static Future<void> openPlayStoreForUpdate(String packageName) async {
+    // Ouvre directement la page Play Store de l'app
+    final url = 'market://details?id=$packageName';
+    final fallback =
+        'https://play.google.com/store/apps/details?id=$packageName';
+    try {
+      await LaunchApp.openApp(
+        androidPackageName: 'com.android.vending',
+        openStore: true,
+      );
+    } catch (_) {}
+  }
+
   static Future<bool> addApp(
     String name,
     String package,
@@ -214,5 +228,80 @@ class ApiService {
     return response != null &&
         response.statusCode >= 200 &&
         response.statusCode < 300;
+  }
+
+  static Future<List<dynamic>> getPendingNotifications(String deviceId) async {
+    final response = await _tryRequest(
+      (base) => http.get(
+        Uri.parse(
+          '$base/api/notifications/pending?deviceId=${Uri.encodeComponent(deviceId)}',
+        ),
+        headers: _authHeaders,
+      ),
+    );
+    if (response == null || response.statusCode != 200) return [];
+    return jsonDecode(response.body);
+  }
+
+  static Future<void> markNotificationRead(int id) async {
+    await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/notifications/$id/read'),
+        headers: _authHeaders,
+      ),
+    );
+  }
+
+  static Future<List<dynamic>> getDevices() async {
+    final response = await _tryRequest(
+      (base) => http.get(Uri.parse('$base/api/devices'), headers: _authHeaders),
+    );
+    if (response == null || response.statusCode != 200) return [];
+    return jsonDecode(response.body);
+  }
+
+  static Future<void> sendNotification({
+    required String message,
+    String? deviceId,
+  }) async {
+    await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/notifications'),
+        headers: _authHeaders,
+        body: jsonEncode({
+          'message': message,
+          if (deviceId != null) 'deviceId': deviceId,
+        }),
+      ),
+    );
+  }
+
+  static Future<void> forceOpenLauncher(String deviceId) async {
+    await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/devices/$deviceId/force-open'),
+        headers: _authHeaders,
+      ),
+    );
+  }
+
+  static Future<void> logAppUsage({
+    required String deviceId,
+    required String packageName,
+    required String appName,
+    required String action, // 'open' ou 'close'
+  }) async {
+    await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/logs/app'),
+        headers: _authHeaders,
+        body: jsonEncode({
+          'deviceId': deviceId,
+          'packageName': packageName,
+          'appName': appName,
+          'action': action,
+        }),
+      ),
+    );
   }
 }
