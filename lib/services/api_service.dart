@@ -6,7 +6,7 @@ import 'package:external_app_launcher/external_app_launcher.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.111.27.253:3000";
-  static const String baseUrlFallback = "http://100.27.0.2:3000";
+  static const String baseUrlFallback = "http://10.10.10.2:3000";
 
   static String? _token;
 
