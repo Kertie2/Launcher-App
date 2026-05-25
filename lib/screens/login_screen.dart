@@ -34,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen>
     ApiService.clearSession();
     AppLockService.start([]);
     _checkLockPermission();
+    _registerDevice();
 
     _fadeController = AnimationController(
       vsync: this,
@@ -82,6 +83,12 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _checkLockPermission() async {
     await AppLockService.checkAndRequestPermission(context);
+  }
+
+  Future<void> _registerDevice() async {
+    final deviceId = await DeviceService.getDeviceId();
+    if (deviceId == null) return;
+    await ApiService.registerDevice(deviceId);
   }
 
   void _showWarningDialog() {

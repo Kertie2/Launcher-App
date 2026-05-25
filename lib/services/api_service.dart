@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:external_app_launcher/external_app_launcher.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.111.27.253:3000";
@@ -37,6 +39,38 @@ class ApiService {
 
   static void clearSession() {
     _token = null;
+  }
+
+  static Future<void> registerDevice(String deviceId) async {
+    if (deviceId.isEmpty || deviceId == 'NON-CONFIGURE') return;
+
+    String model = 'Inconnu';
+    String? macAddress;
+
+    try {
+      final info = await DeviceInfoPlugin().androidInfo;
+      model = '${info.manufacturer} ${info.model}';
+    } catch (_) {}
+
+    try {
+      final file = File('/sys/class/net/wlan0/address');
+      if (await file.exists()) {
+        final mac = (await file.readAsString()).trim();
+        if (mac != '02:00:00:00:00:00') macAddress = mac;
+      }
+    } catch (_) {}
+
+    await _tryRequest(
+      (base) => http.post(
+        Uri.parse('$base/api/devices/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'deviceId': deviceId,
+          'model': model,
+          if (macAddress != null) 'macAddress': macAddress,
+        }),
+      ),
+    );
   }
 
   static Future<Map<String, dynamic>> sendHeartbeat(
